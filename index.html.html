@@ -1,0 +1,786 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Caderno de Receitas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: coluna de leitura com topo verde, filtros retos por categoria e receitas em acordeão com faixa de cor terrosa; macros em um bege só, em três intensidades */
+:root {
+  --bg: #F6F0EB;
+  --surface: #FFFCFA;
+  --fg: #3A1D0E;
+  --muted: #7A6558;
+  --line: #E0D2C8;
+  --on-color: #2E1608;
+  --accent: #B5573D;
+  --check: #3F5B36;
+  --green: #3F5B36;
+  --hero-fg: #F6F0EB;
+  --hero-accent: #F2C24A;
+  --rule: #D68A2E;
+  --cat-frango: #E9B22F;
+  --cat-carnes: #D07C62;
+  --cat-peixes: #8A9570;
+  --cat-massas: #D68A2E;
+  --cat-molhos: #A8A46C;
+  --cat-sobremesas: #E0C08F;
+  --cat-bolos: #BE8E6E;
+  --cat-lanches: #C9AE82;
+  --cat-bebidas: #86A08F;
+  --prot: #6E4F2A;
+  --fat: #A9824F;
+  --carb: #D9BE92;
+  --font-display: "Montserrat", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #231710; --surface: #2E1F16; --fg: #F3E8DF; --muted: #C4B0A1; --line: #4A372B;
+    --accent: #E39A80; --check: #9DBB8A;
+    --prot: #E6BE82; --fat: #B48D5C; --carb: #7F6040;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #231710; --surface: #2E1F16; --fg: #F3E8DF; --muted: #C4B0A1; --line: #4A372B;
+  --accent: #E39A80; --check: #9DBB8A;
+  --prot: #E6BE82; --fat: #B48D5C; --carb: #7F6040;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+  padding-block: 40px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Topo */
+.hero { background: var(--green); color: var(--hero-fg); border-radius: 12px; padding: 34px 32px; display: flex; flex-direction: column; gap: 14px; }
+.hero h1 { font-weight: 800; font-size: clamp(2.2rem, 8vw, 4rem); line-height: 1.02; letter-spacing: -0.01em; color: var(--hero-fg); }
+.hero h1 span { color: var(--hero-accent); }
+.hero .rule { width: 120px; height: 5px; background: var(--rule); border-radius: 1px; }
+.hero p { margin: 0; font-size: 1.15rem; opacity: .9; max-width: 46ch; }
+
+/* Filtros */
+.tools { display: flex; flex-direction: column; gap: 12px; }
+#busca {
+  width: 100%; font: inherit; color: var(--fg); background: var(--surface);
+  border: 1.5px solid var(--line); border-radius: 6px; padding: 11px 14px;
+}
+#busca::placeholder { color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; color: var(--fg);
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 6px; padding: 8px 14px;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.chip .d { width: 12px; height: 12px; border-radius: 2px; background: var(--c, var(--fg)); }
+.chip[aria-pressed="true"] { background: var(--c, var(--fg)); border-color: var(--c, var(--fg)); color: var(--on-color); }
+.chip[data-cat="Todas"][aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+.chip[aria-pressed="true"] .d { background: var(--on-color); }
+.chip[data-cat="Todas"][aria-pressed="true"] .d { background: var(--bg); }
+.count { font-size: 14px; color: var(--muted); }
+
+/* Receitas */
+.lista { display: flex; flex-direction: column; gap: 16px; }
+details.receita { background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
+details.receita > summary {
+  list-style: none; cursor: pointer; position: relative;
+  background: var(--c); color: var(--on-color);
+  padding: 18px 64px 18px 20px; display: flex; flex-direction: column; gap: 6px;
+}
+details.receita > summary::-webkit-details-marker { display: none; }
+details.receita > summary::after {
+  content: "+"; position: absolute; right: 18px; top: 18px; width: 30px; height: 30px; border-radius: 6px;
+  border: 2px solid var(--on-color); display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1;
+}
+details.receita[open] > summary::after { content: "−"; }
+.cat { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; }
+.titulo { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; line-height: 1.15; text-wrap: balance; }
+.resumo { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.corpo { padding: 22px 20px 24px; display: flex; flex-direction: column; gap: 26px; }
+.sec h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 12px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.sec h3 .count { font-family: var(--font-body); font-weight: 600; }
+.porcoes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.step-btn {
+  font: inherit; width: 34px; height: 34px; border-radius: 6px; cursor: pointer;
+  border: 1.5px solid var(--line); background: var(--bg); color: var(--fg); font-size: 18px; line-height: 1; font-weight: 700;
+}
+.step-btn:hover { border-color: var(--fg); }
+.porcoes output { font-family: var(--font-display); font-weight: 800; color: var(--fg); min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; }
+.macros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.macro { background: var(--bg); border-radius: 8px; border-top: 4px solid var(--line); padding: 10px 12px; min-width: 0; }
+.macro:nth-child(2) { border-top-color: var(--prot); }
+.macro:nth-child(3) { border-top-color: var(--carb); }
+.macro:nth-child(4) { border-top-color: var(--fat); }
+.macro b { display: block; font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.macro span { font-size: 12px; color: var(--muted); }
+.barra { display: flex; height: 8px; border-radius: 2px; overflow: hidden; margin-top: 12px; background: var(--line); gap: 2px; }
+.barra i { display: block; height: 100%; }
+.leg { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+.leg em { font-style: normal; }
+.leg em::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); }
+.nota { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+.ing { list-style: none; margin: 0; padding: 0; }
+.ing li { border-bottom: 1px solid var(--line); }
+.ing li:last-child { border-bottom: 0; }
+.ing li.grupo { font-family: var(--font-display); font-weight: 800; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); padding: 14px 0 4px; }
+.ing li.grupo:first-child { padding-top: 0; }
+.ing label { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: baseline; padding: 9px 0; cursor: pointer; }
+.ing input { accent-color: var(--check); width: 18px; height: 18px; margin: 0; align-self: center; }
+.ing .nome { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.ing .orig { display: block; font-size: 13px; font-weight: 400; color: var(--muted); }
+.ing .g { font-family: var(--font-display); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ing input:checked ~ .nome { text-decoration: line-through; color: var(--muted); }
+.passos { margin: 0; padding: 0; list-style: none; counter-reset: p; display: flex; flex-direction: column; gap: 14px; }
+.passos li { counter-increment: p; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px; align-items: start; }
+.passos li::before {
+  content: counter(p); font-family: var(--font-display); font-size: 15px; font-weight: 800;
+  width: 32px; height: 32px; border-radius: 6px; background: var(--c); color: var(--on-color);
+  display: grid; place-items: center;
+}
+.passos li span { padding-top: 3px; }
+.vazio { color: var(--muted); padding: 24px 0; text-align: center; }
+.rodape { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+@media (max-width: 520px) { .macros { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hero { padding: 28px 22px; } }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <h1>Caderno de <span>Receitas</span></h1>
+    <div class="rule" aria-hidden="true"></div>
+    <p>Curadoria de receitas padronizadas em gramas</p>
+  </header>
+
+  <div class="tools">
+    <input id="busca" type="search" placeholder="Buscar por receita ou ingrediente" aria-label="Buscar receitas">
+    <div class="chips" id="chips" role="group" aria-label="Categorias"></div>
+    <div class="count" id="contagem" aria-live="polite"></div>
+  </div>
+
+  <div class="lista" id="lista"></div>
+
+  <p class="rodape">Valores nutricionais estimados somando cada ingrediente cru, com base na Tabela TACO e, para temperos e itens fora dela, no USDA FoodData Central. Marca, corte e perdas no preparo mudam o resultado. Um til (~) indica peso aproximado.</p>
+</div>
+
+<script>
+var CATEGORIAS = ["Frango", "Carnes", "Peixes", "Massas", "Molhos", "Sobremesas", "Bolos", "Lanches", "Bebidas"];
+
+// ing: [nome, gramas, medida original, aproximado?, kcal/100g, prot/100g, carb/100g, gord/100g]
+var RECEITAS = [{
+  id: "frango-pimentoes-arroz",
+  titulo: "Frango Suqaar",
+  categoria: "Frango",
+  porcoes: 6,
+  tempo: "~40 min",
+  ing: [
+    ["Sobrecoxa de frango sem pele e sem osso, em cubos pequenos", 1000, "", false, 162, 17.6, 0, 9.6],
+    ["Pimentão vermelho, fatiado", 250, "~1 ⅔ unidade média", false, 23, 1.0, 5.5, 0.2],
+    ["Pimentão amarelo, fatiado", 250, "~1 ⅔ unidade média", false, 28, 1.2, 6.0, 0.4],
+    ["Cebola roxa, cortada ao meio e fatiada", 200, "~1 ⅔ unidade média", false, 39, 1.7, 8.9, 0.1],
+    ["Alho picado", 27, "~7 dentes", false, 113, 7.0, 23.9, 0.2],
+    ["Pimenta dedo de moça, cortada ao meio (opcional)", 17, "~1 a 2 unidades", false, 40, 1.9, 8.8, 0.4],
+    ["Coentro fresco picado grosseiramente", 25, "", false, 23, 2.1, 3.7, 0.5],
+    ["Suco de limão", 25, "~½ limão", true, 22, 0.4, 6.9, 0.2],
+    ["Azeite de oliva", 17, "", false, 884, 0, 0, 100],
+    ["Sal", 15, "", false, 0, 0, 0, 0],
+    ["Cominho em pó", 5, "", false, 375, 17.8, 44.2, 22.3],
+    ["Páprica (picante, doce ou defumada)", 1.7, "", false, 282, 14.1, 54, 12.9],
+    ["Coentro em pó", 1.7, "", false, 298, 12.4, 55, 17.8],
+    ["Cúrcuma em pó", 0.8, "", false, 312, 9.7, 67.1, 3.3],
+    ["Pimenta-do-reino", 0.8, "", false, 251, 10.4, 64, 3.3],
+    ["Canela em pó", 0.5, "", true, 247, 4, 80.6, 1.2]
+  ],
+  passos: [
+    "Aqueça uma frigideira grande com o azeite e doure o frango em fogo médio-alto.",
+    "Quando pegar cor, adicione o sal e os temperos, a cebola e os pimentões com uma pitada de sal para eles. Refogue até os vegetais começarem a amolecer e dourar.",
+    "Reduza o fogo, tampe e cozinhe por 10 a 15 minutos, mexendo de vez em quando. Se o fundo começar a grudar, adicione um pouco de água.",
+    "Com o frango cozido e os vegetais macios, adicione o alho, o suco de limão e a pimenta. Refogue por mais 1 a 2 minutos.",
+    "Desligue o fogo, finalize com o coentro e ajuste o sal e o limão se necessário."
+  ]
+},{
+  id: "frango-parmesao",
+  titulo: "Frango com Parmesão",
+  categoria: "Frango",
+  porcoes: 6,
+  tempo: "30 min",
+  ing: [
+    ["Sobrecoxa de frango sem pele e sem osso", 1000, "", false, 162, 17.6, 0, 9.6],
+    ["Maionese light", 63, "", false, 157, 0.6, 18.8, 9.5],
+    ["Parmesão ralado", 50, "", false, 453, 35.6, 1.7, 33.5],
+    ["Mel", 25, "", false, 309, 0, 84, 0],
+    ["Cebola em pó", 8, "", false, 341, 10.4, 79.9, 1.0],
+    ["Alho em pó", 2.5, "", false, 331, 16.6, 72.7, 0.7],
+    ["Orégano seco", 2.5, "", false, 265, 9, 68.9, 4.3],
+    ["Pimenta calabresa em flocos", 2.5, "", false, 318, 12, 56.6, 17.3],
+    ["Sal marinho moído", 15, "", false, 0, 0, 0, 0],
+    ["Pimenta-do-reino moída", 2.5, "", false, 251, 10.4, 64, 3.3]
+  ],
+  passos: [
+    "Misture o frango com os demais ingredientes até ficar bem envolvido.",
+    "Deixe marinar por, no mínimo, 30 minutos.",
+    "Leve à airfryer a 180 °C por 30 minutos."
+  ]
+},{
+  id: "frango-mexicano",
+  titulo: "Frango Mexicano",
+  categoria: "Frango",
+  porcoes: 6,
+  tempo: "30 min",
+  ing: [
+    ["Sobrecoxa de frango sem pele e sem osso", 1000, "", false, 162, 17.6, 0, 9.6],
+    ["Maionese light", 63, "", false, 157, 0.6, 18.8, 9.5],
+    ["Alho ralado ou esmagado", 20, "~5 dentes", false, 113, 7.0, 23.9, 0.2],
+    ["Cominho em pó", 13, "", false, 375, 17.8, 44.2, 22.3],
+    ["Páprica defumada", 8, "", false, 282, 14.1, 54, 12.9],
+    ["Orégano seco", 2.5, "", false, 265, 9, 68.9, 4.3],
+    ["Pimenta calabresa em flocos", 2.5, "", false, 318, 12, 56.6, 17.3],
+    ["Sal marinho moído", 15, "", false, 0, 0, 0, 0],
+    ["Pimenta-do-reino moída", null, "a gosto", false, 251, 10.4, 64, 3.3]
+  ],
+  passos: [
+    "Misture o frango com os demais ingredientes até ficar bem envolvido.",
+    "Deixe marinar por, no mínimo, 30 minutos.",
+    "Leve à airfryer a 180 °C por 30 minutos."
+  ]
+},{
+  id: "frango-teriyaki",
+  titulo: "Frango Teriyaki",
+  categoria: "Frango",
+  porcoes: 6,
+  tempo: "30 min",
+  ing: [
+    ["Sobrecoxa de frango sem pele e sem osso", 1000, "", false, 162, 17.6, 0, 9.6],
+    ["Shoyu", 150, "", false, 53, 2.8, 10.0, 0.3],
+    ["Vinagre de arroz", 75, "", true, 18, 0, 0.4, 0],
+    ["Óleo de gergelim", 13, "", false, 884, 0, 0, 100],
+    ["Mel", 50, "", false, 309, 0, 84, 0],
+    ["Alho ralado ou esmagado", 20, "~5 dentes", false, 113, 7.0, 23.9, 0.2],
+    ["Gengibre fresco ralado", 10, "", false, 80, 1.8, 17.8, 0.8],
+    ["Maionese light", 63, "", false, 157, 0.6, 18.8, 9.5]
+  ],
+  passos: [
+    "Misture o frango com os demais ingredientes até ficar bem envolvido.",
+    "Deixe marinar por, no mínimo, 30 minutos.",
+    "Leve à airfryer a 180 °C por 30 minutos."
+  ]
+},{
+  id: "frango-paprikash",
+  titulo: "Frango Paprikash com Nhoque",
+  categoria: "Massas",
+  porcoes: 3,
+  tempo: "~40 min",
+  ing: [
+    ["Massa"],
+    ["Nhoque cru", 500, "", false, 150, 3.5, 32, 0.6],
+    ["Paprikash"],
+    ["Peito de frango sem pele, em cubos", 500, "", false, 119, 21.5, 0, 3.0],
+    ["Sal", null, "a gosto", false, 0, 0, 0, 0],
+    ["Óleo de coco spray", 0.7, "", true, 884, 0, 0, 100],
+    ["Pimentão vermelho picado", 390, "~3 unidades médias", false, 23, 1.0, 5.5, 0.2],
+    ["Cebola amarela picada", 175, "~1 unidade média", false, 39, 1.7, 8.9, 0.1],
+    ["Extrato de tomate", 20, "", false, 61, 2.4, 15.0, 0.2],
+    ["Alho picado", 6, "~1 ½ dente", false, 113, 7.0, 23.9, 0.2],
+    ["Páprica picante", 10, "", false, 282, 14.1, 54, 12.9],
+    ["Pimenta caiena (ou pimenta calabresa em flocos)", 0.7, "", false, 318, 12, 56.6, 17.3],
+    ["Leite de coco light", 250, "", false, 55, 0, 1.7, 5.2],
+    ["Salsa picada", 8, "", false, 33, 3.3, 5.7, 0.6]
+  ],
+  passos: [
+    "Tempere os cubos de frango com sal, pimenta e páprica.",
+    "Asse na airfryer a 200 °C por 7 minutos.",
+    "Em uma panela em fogo médio, untada com o óleo, refogue a cebola e os pimentões com uma pitada generosa de sal até ficarem levemente dourados e macios.",
+    "Refogue rapidamente o extrato de tomate, o alho, a pimenta e a páprica.",
+    "Adicione o leite de coco e cozinhe por cerca de 15 minutos, até os sabores se misturarem e o molho engrossar.",
+    "Adicione o nhoque cru ao molho, devolva o frango à panela e cozinhe por 5 minutos. Prove e ajuste o sal."
+  ]
+},{
+  id: "nuggets-frango",
+  titulo: "Nuggets de Frango",
+  categoria: "Frango",
+  porcoes: 6,
+  tempo: "~1 h 15 min",
+  ing: [
+    ["Peito de frango sem pele", 1000, "~5 ½ unidades", false, 119, 21.5, 0, 3.0],
+    ["Iogurte natural desnatado", 270, "só ~180 g serão consumidos", false, 41, 3.8, 5.8, 0.3, false, 180],
+    ["Leite desnatado", 130, "", false, 34, 3.4, 5.0, 0.1],
+    ["Farinha de trigo", 330, "só ~165 g serão consumidos", false, 360, 9.8, 75.1, 1.4, false, 165],
+    ["Sal (dividido)", 20, "", false, 0, 0, 0, 0],
+    ["Páprica defumada (dividida)", 7, "", false, 282, 14.1, 54, 12.9],
+    ["Cebola em pó (dividida)", 4.5, "", false, 341, 10.4, 79.9, 1.0],
+    ["Alho em pó (dividido)", 4.5, "", false, 331, 16.6, 72.7, 0.7],
+    ["Pimenta-do-reino (dividida)", 4.5, "", false, 251, 10.4, 64, 3.3],
+    ["Azeite de oliva spray", 10, "", false, 884, 0, 0, 100]
+  ],
+  passos: [
+    "Fure os peitos com um garfo e corte em tiras de ~3 cm, depois em 3 a 4 pedaços cada.",
+    "Misture 270 g de iogurte (apenas 180 g serão consumidos), o leite, metade dos temperos e 2/3 do sal. Envolva o frango e deixe marinar por 30 minutos.",
+    "Misture 330 g de farinha (apenas 165 g serão consumidos) com o restante dos temperos e do sal. Incorpore ~90 g da marinada com as mãos até formar grumos.",
+    "Escorra o frango, empane bem e leve à geladeira por 15 minutos para firmar a crosta (ou congele).",
+    "Borrife o azeite e asse na airfryer a 200 °C por 12 a 15 minutos, virando uma vez."
+  ]
+},{
+  id: "butter-chicken",
+  titulo: "Butter Chicken",
+  categoria: "Frango",
+  porcoes: 6,
+  tempo: "~1 h",
+  ing: [
+    ["Mix de temperos"],
+    ["Garam masala (ou curry em pó)", 20, "", false, 325, 14.3, 55.8, 14.0],
+    ["Açafrão-da-terra em pó", 9, "", false, 312, 9.7, 67.1, 3.3],
+    ["Cominho moído", 3, "", false, 375, 17.8, 44.2, 22.3],
+    ["Páprica picante", 3, "", false, 282, 14.1, 54, 12.9],
+    ["Pimenta caiena (ou 3 g de pimenta calabresa em flocos)", 1.5, "", false, 318, 12, 56.6, 17.3],
+    ["Frango"],
+    ["Peito de frango sem pele, em cubos", 1000, "~4 ¼ peitos", false, 119, 21.5, 0, 3.0],
+    ["Sal", null, "a gosto", false, 0, 0, 0, 0],
+    ["Iogurte grego desnatado", 115, "", false, 54, 9.4, 3.8, 0.2],
+    ["Gengibre fresco picado", 4, "", false, 80, 1.8, 17.8, 0.8],
+    ["Alho picado e esmagado", 11, "~3 dentes", false, 113, 7.0, 23.9, 0.2],
+    ["Suco de limão", 45, "", false, 22, 0.4, 6.9, 0.2],
+    ["Molho"],
+    ["Óleo de coco spray", 1.4, "", true, 884, 0, 0, 100],
+    ["Cebola amarela picada", 245, "~1 ½ cebola", false, 39, 1.7, 8.9, 0.1],
+    ["Gengibre fresco picado", 4, "", false, 80, 1.8, 17.8, 0.8],
+    ["Alho picado e esmagado", 6, "~1 ½ dente", false, 113, 7.0, 23.9, 0.2],
+    ["Tomate pelado esmagado", 570, "~1 ½ lata de 400 g", false, 13, 1.1, 2.2, 0],
+    ["Manteiga sem sal", 17, "", false, 758, 0.4, 0, 86],
+    ["Iogurte grego desnatado", 145, "", false, 54, 9.4, 3.8, 0.2],
+    ["Adoçante em gotas (opcional)", 1.5, "", true, 0, 0, 0, 0],
+    ["Sal", null, "a gosto", false, 0, 0, 0, 0]
+  ],
+  passos: [
+    "Em um pote, misture os ingredientes do mix de temperos e reserve.",
+    "Em outro pote, misture os cubos de frango com os ingredientes do grupo Frango e metade do mix de temperos. Deixe descansar na geladeira, evitando marinar por mais de 8 horas (também pode usar imediatamente). Asse na airfryer a 200 °C por 7 minutos.",
+    "Em uma panela em fogo médio, untada com o óleo spray, refogue a cebola, o alho e o gengibre até amolecerem e dourarem levemente. Adicione a outra metade do mix de temperos e frite até liberar o aroma. Adicione os tomates pelados e cozinhe por cerca de 15 minutos, até formar um molho cremoso e grosso.",
+    "Deixe o molho esfriar um pouco e processe no liquidificador ou com o mixer até ficar cremoso.",
+    "Devolva o molho à panela em fogo baixo, com o frango, a manteiga, o iogurte grego e o adoçante em gotas (opcional). Incorpore tudo e cozinhe por cerca de 10 minutos."
+  ]
+},{
+  id: "macarrao-queijo-x-burguer",
+  titulo: "Macarrão com Queijo Sabor X-Burguer",
+  categoria: "Massas",
+  porcoes: 6,
+  tempo: "~50 min",
+  ing: [
+    ["Carne"],
+    ["Manteiga", 8, "", false, 758, 0.4, 0, 86],
+    ["Cebola amarela, picada grossa", 325, "~2 cebolas", false, 39, 1.7, 8.9, 0.1],
+    ["Carne moída de patinho (ou carne magra de sua escolha)", 650, "", false, 127, 21.7, 0, 4.5],
+    ["Pimentão vermelho picado", 160, "", false, 23, 1.0, 5.5, 0.2],
+    ["Alho picado ou amassado", 7, "~2 dentes", false, 113, 7.0, 23.9, 0.2],
+    ["Orégano seco", 1.7, "", false, 265, 9, 68.9, 4.3],
+    ["Páprica defumada", 3.5, "", false, 282, 14.1, 54, 12.9],
+    ["Caldo de carne em pó (opcional, ou sal a gosto)", 12, "", false, 241, 7.8, 15.1, 16.6],
+    ["Pimenta-do-reino", null, "a gosto", false, 251, 10.4, 64, 3.3],
+    ["Extrato de tomate sem açúcar", 125, "", false, 61, 2.4, 15.0, 0.2],
+    ["Vinagre de vinho branco", 25, "", false, 19, 0, 0.3, 0],
+    ["Água", 200, "", false, 0, 0, 0, 0],
+    ["Pepino em conserva picado", 85, "", false, 12, 0.6, 2.6, 0.1],
+    ["Queijo cremoso"],
+    ["Queijo cottage baixo em gordura", 500, "", false, 72, 12.4, 2.7, 1.0],
+    ["Cheddar light fatiado", 80, "4 fatias", false, 182, 17, 8, 9.1],
+    ["Leite desnatado", 100, "", false, 34, 3.4, 5.0, 0.1],
+    ["Sal e pimenta-do-reino", null, "a gosto", false, 0, 0, 0, 0],
+    ["Macarrão"],
+    ["Macarrão cru", 500, "1 pacote", false, 371, 10.3, 76.6, 2.0]
+  ],
+  passos: [
+    "Em uma panela em fogo baixo, untada com a manteiga, caramelize a cebola devagar (opcional).",
+    "Adicione a carne, o pimentão, o alho, a páprica defumada, o orégano, o caldo de carne em pó, a pimenta-do-reino e o extrato de tomate. Refogue e quebre a carne em pedaços pequenos. Adicione o vinagre e a água e raspe o fundo da panela.",
+    "Junte o pepino em conserva picado e cozinhe por cerca de 20 minutos, até a carne ficar macia e o molho espesso.",
+    "Em uma panela com água fervente generosamente salgada, cozinhe o macarrão por metade do tempo indicado na embalagem.",
+    "Enquanto isso, bata no liquidificador até ficar cremoso o queijo cottage, o cheddar, o leite, o sal e a pimenta-do-reino.",
+    "Adicione o creme ao molho junto com o macarrão semicozido e deixe cozinhando em fogo baixo por cerca de 10 minutos, até o molho ficar cremoso e o macarrão terminar de cozinhar."
+  ]
+},{
+  id: "musculo-cerveja-preta",
+  titulo: "Músculo na Pressão com Cerveja Preta",
+  categoria: "Carnes",
+  porcoes: 6,
+  tempo: "~1 h",
+  ing: [
+    ["Músculo bovino, em cubos de ~3 cm", 1000, "", false, 142, 21.6, 0, 5.5],
+    ["Cebola, fatiada em meias-luas", 170, "1 cebola", true, 39, 1.7, 8.9, 0.1],
+    ["Alho, amassado com casca removida", 12, "3 dentes", true, 113, 7.0, 23.9, 0.2],
+    ["Cerveja preta", 350, "", false, 37, 0.3, 3.2, 0.1, false, null, "1 lata (350 ml)"],
+    ["Extrato de tomate", 30, "2 colheres de sopa", false, 61, 2.4, 15.0, 0.2],
+    ["Azeite de oliva", 24, "2 colheres de sopa", false, 884, 0, 0, 100],
+    ["Farinha de trigo", 12, "1 colher de sopa", false, 360, 9.8, 75.1, 1.4],
+    ["Açúcar mascavo", 18, "1 colher de sopa", false, 380, 0.1, 98.1, 0],
+    ["Sal", 9, "1 ½ colher de chá", false, 0, 0, 0, 0],
+    ["Canela em rama", 3, "1 rama", true, 247, 4, 80.6, 1.2],
+    ["Páprica doce", 3, "1 colher de chá", false, 282, 14.1, 54, 12.9],
+    ["Pimenta-do-reino moída na hora", null, "a gosto", false, 251, 10.4, 64, 3.3],
+    ["Alecrim fresco, debulhado", 4, "4 galhos", true, 131, 3.3, 20.7, 5.9]
+  ],
+  passos: [
+    "Corte o músculo em cubos médios, de cerca de 3 cm. Tempere com a páprica, 6 g de sal (1 colher de chá) e pimenta a gosto. Regue com 12 g de azeite (1 colher de sopa) e espalhe bem com as mãos para cobrir todos os pedaços. Mantenha a carne em temperatura ambiente enquanto prepara o restante dos ingredientes.",
+    "Descasque e fatie a cebola em meias-luas de 0,5 cm. Com a lateral da faca, amasse os dentes de alho e descasque. Eles vão inteiros para a panela.",
+    "Leve a panela de pressão, sem a tampa, ao fogo médio para aquecer. Regue com os 12 g restantes de azeite, coloque a cebola, tempere com uma pitada de sal e refogue por cerca de 3 minutos, até murchar. Adicione o alho, o alecrim debulhado, o extrato de tomate e o açúcar mascavo e mexa bem por 1 minuto.",
+    "Adicione o músculo e misture bem. Polvilhe a farinha de trigo e mexa bem para cobrir toda a carne.",
+    "Acrescente a cerveja preta, a canela e tempere com 3 g de sal (½ colher de chá). Tampe a panela e aumente o fogo. Assim que começar a apitar, abaixe o fogo e deixe cozinhar por 35 minutos.",
+    "Desligue o fogo e leve a panela, com cuidado, para esfriar sob água corrente até parar de sair vapor pela válvula. Atenção: a água não deve entrar em contato com nenhuma das válvulas, só com a superfície lisa da tampa.",
+    "Abra a panela e mexa o músculo com uma espátula para desmanchar um pouco os pedaços.",
+    "Pode congelar por até 3 meses. Para descongelar, deixe de um dia para o outro na geladeira ou descongele direto na panela tampada, em fogo baixo, com um pouquinho de água para não queimar."
+  ]
+},{
+  id: "bolo-chocolate",
+  titulo: "Bolo de Chocolate",
+  categoria: "Bolos",
+  porcoes: 12,
+  tempo: "",
+  ing: [
+    ["Ovos", 150, "3 unidades", true, 155, 12.58, 1.12, 10.61],
+    ["Açúcar (bater muito bem com os ovos)", 200, "1 xícara", false, 387, 0, 99.98, 0],
+    ["Óleo", 100, "½ xícara", false, 884, 0, 0, 100],
+    ["Cacau em pó", 90, "1 xícara", false, 228, 19.6, 57.9, 13.7],
+    ["Leite", 240, "1 xícara", false, 60, 3.22, 4.52, 3.25],
+    ["Bicarbonato de sódio", 4, "1 colher bem rasa (assumida colher de chá)", true, 0, 0, 0, 0],
+    ["Farinha de trigo, peneirada", 180, "1 ½ xícara", false, 360, 9.8, 75.1, 1.4],
+    ["Café quente", 120, "½ xícara", false, 2, 0.1, 0.3, 0],
+    ["Fermento em pó", 12, "1 colher (assumida colher de sopa)", true, 53, 0, 27.7, 0]
+  ],
+  passos: []
+},{
+  id: "lasanha-potes-lentilha",
+  titulo: "Lasanha em Potes com Lentilha",
+  categoria: "Massas",
+  porcoes: 8,
+  tempo: "~1 h 15 min",
+  ing: [
+    ["Azeite de oliva", 9, "", false, 884, 0, 0, 100],
+    ["Cenoura, ralada ou picada", 140, "~2 cenouras", false, 34, 1.3, 7.7, 0.2],
+    ["Cebola, ralada ou picada", 160, "1 cebola média", false, 39, 1.7, 8.9, 0.1],
+    ["Alho, ralado ou esmagado", 24, "~6 dentes", false, 113, 7.0, 23.9, 0.2],
+    ["Carne moída magra (ex.: patinho, músculo)", 1000, "", false, 127, 21.7, 0, 4.5],
+    ["Sal marinho moído", 18, "", false, 0, 0, 0, 0],
+    ["Extrato de tomate", 360, "24 colheres de sopa", false, 61, 2.4, 15.0, 0.2],
+    ["Lentilha crua", 160, "", false, 339, 23.2, 62, 0.8],
+    ["Água", 960, "", false, 0, 0, 0, 0],
+    ["Leite desnatado", 120, "", false, 34, 3.4, 5.0, 0.1],
+    ["Massa para lasanha seca", 176, "16 lâminas", false, 371, 10.3, 76.6, 2.0],
+    ["Queijo cottage", 400, "2 potes de 200 g", false, 103, 12.49, 2.68, 4.51],
+    ["Queijo muçarela light fatiado", 160, "8 fatias", false, 253, 24, 1.7, 17],
+    ["Parmesão ralado fino", 48, "", false, 453, 35.6, 1.7, 33.5]
+  ],
+  passos: [
+    "Deixe a lentilha de molho por 2 a 4 horas (opcional).",
+    "Refogue a cebola, a cenoura e o alho no azeite até ficarem macios. Junte a carne e o extrato de tomate e doure levemente, quebrando a carne.",
+    "Adicione a lentilha e a água. Cozinhe parcialmente tampado, em fogo baixo, por 30 minutos, mexendo de vez em quando, até encorpar. Finalize com o leite.",
+    "Bata o queijo cottage com um pouco de leite até ficar cremoso e ajuste o sal.",
+    "Em 8 potes, faça camadas com 80 g de bolonhesa, 1 folha de massa, 80 g de bolonhesa e 30 g de cottage. Repita, finalize com a muçarela e o parmesão.",
+    "Asse na airfryer a 160 °C por 15 a 20 minutos ou no forno a 180 °C por 25 a 35 minutos."
+  ]
+},{
+  id: "creme-batata-frango",
+  titulo: "Creme de Batata com Frango",
+  categoria: "Frango",
+  porcoes: 6,
+  tempo: "~40 min",
+  ing: [
+    ["Azeite de oliva", 1.7, "", true, 884, 0, 0, 100],
+    ["Sobrecoxa de frango sem pele e sem osso, em cubos, gordura aparada", 1000, "", false, 162, 17.6, 0, 9.6],
+    ["Orégano seco", 0.8, "", false, 265, 9, 68.9, 4.3],
+    ["Alho em pó", 1.7, "", false, 331, 16.6, 72.7, 0.7],
+    ["Pimenta-do-reino", 1.7, "", false, 251, 10.4, 64, 3.3],
+    ["Páprica defumada (dividida)", 5, "", false, 282, 14.1, 54, 12.9],
+    ["Sal (dividido)", 12.5, "", false, 0, 0, 0, 0],
+    ["Manteiga", 6, "", false, 758, 0.4, 0, 86],
+    ["Cebola picada", 60, "", false, 39, 1.7, 8.9, 0.1],
+    ["Alho picado", 10, "~2 ½ dentes", true, 113, 7.0, 23.9, 0.2],
+    ["Batata em cubos", 650, "", false, 86, 1.71, 20.01, 0.1],
+    ["Caldo de frango ou água", 300, "", false, 0, 0, 0, 0],
+    ["Requeijão light", 65, "", false, 183, 11, 5.4, 13],
+    ["Queijo muçarela light fatiado", 50, "~2 ½ fatias", false, 253, 24, 1.7, 17]
+  ],
+  passos: [
+    "Doure o frango com o azeite e tempere com o orégano, o alho em pó, a pimenta, metade da páprica e metade do sal. Misture e doure de todos os lados.",
+    "Adicione a manteiga e refogue rapidamente a cebola e o alho. Adicione a batata com o restante da páprica e do sal e o caldo de frango ou a água (pode usar ½ cubo de caldo de frango sem sal ou ~3 g de caldo de frango em pó sem sal).",
+    "Cozinhe tampado até a batata amolecer e o líquido ficar cremoso. Se sobrar muito líquido no fim do cozimento, tire a tampa.",
+    "Finalize com o requeijão e a muçarela."
+  ]
+},{
+  id: "frango-bbq-pure",
+  titulo: "Frango BBQ com Purê de Batata",
+  categoria: "Frango",
+  porcoes: 6,
+  tempo: "~50 min",
+  ing: [
+    ["Purê"],
+    ["Batata inglesa", 1450, "", false, 64, 1.8, 14.7, 0],
+    ["Requeijão light", 45, "", false, 183, 11, 5.4, 13],
+    ["Leite desnatado quente", 270, "", false, 35, 3.4, 4.9, 0.1],
+    ["Sal marinho moído", 13, "", false, 0, 0, 0, 0],
+    ["Frango"],
+    ["Peito de frango cru, em cubos", 1000, "", false, 119, 21.5, 0, 3],
+    ["Pimenta-do-reino", 2, "", false, 251, 10.4, 64, 3.3],
+    ["Páprica defumada", 9, "", false, 282, 14.1, 54, 12.9],
+    ["Sal marinho", 11, "", false, 0, 0, 0, 0],
+    ["Azeite", 4, "", false, 884, 0, 0, 100],
+    ["Mel", 25, "", false, 309, 0, 84, 0],
+    ["Molho barbecue", 90, "", false, 98, 0.6, 18, 2.4],
+    ["Sriracha ou molho de pimenta", 17, "", true, 93, 1.93, 19.2, 0.93]
+  ],
+  passos: [
+    "Purê: cozinhe as batatas com casca e sal em água fervente até ficarem macias, por 25 a 35 minutos (corte em cubos para acelerar).",
+    "Descasque (opcional) e amasse as batatas ainda quentes. Adicione o leite quente e o requeijão, misture bem e ajuste o sal. Reserve.",
+    "Frango: tempere os cubos com sal, pimenta-do-reino e páprica defumada. Grelhe em frigideira untada com o azeite até dourar.",
+    "Adicione o mel, o molho barbecue e a sriracha, misture até envolver o frango e reserve."
+  ]
+},{
+  id: "ensopado-musculo-vinho",
+  titulo: "Boeuf Bourguignon",
+  categoria: "Carnes",
+  porcoes: 6,
+  tempo: "~2 h 30 min + 2 h de marinada",
+  ing: [
+    ["Marinada"],
+    ["Músculo bovino, em cubos de ~3 cm", 1000, "", false, 142, 21.6, 0, 5.5],
+    ["Vinho tinto", 240, "1 xícara (chá)", false, 85, 0.1, 2.6, 0],
+    ["Louro", 1, "2 folhas", true, 313, 7.6, 75, 8.4],
+    ["Tomilho fresco", 3, "6 ramos", true, 101, 5.6, 24.5, 1.7],
+    ["Ensopado"],
+    ["Cogumelo-de-paris fresco", 200, "", false, 22, 3.1, 3.3, 0.3],
+    ["Cenoura", 140, "~2 cenouras", true, 34, 1.3, 7.7, 0.2],
+    ["Salsão (sem as folhas)", 80, "~2 talos", true, 16, 0.7, 3.0, 0.2],
+    ["Cebola pérola", 500, "~25 unidades", false, 40, 1.1, 9.3, 0.1],
+    ["Alho picado", 11, "~3 dentes", true, 113, 7.0, 23.9, 0.2],
+    ["Bacon em cubos", 70, "⅓ de xícara", false, 541, 37, 1.4, 42],
+    ["Extrato de tomate", 20, "1 colher de sopa", false, 61, 2.4, 15.0, 0.2],
+    ["Farinha de trigo", 24, "2 colheres de sopa", false, 360, 9.8, 75.1, 1.4],
+    ["Água", 720, "3 xícaras (chá)", false, 0, 0, 0, 0],
+    ["Azeite de oliva", 30, "a gosto", true, 884, 0, 0, 100],
+    ["Sal", 9, "1 ½ colher de chá", false, 0, 0, 0, 0],
+    ["Pimenta-do-reino moída na hora", null, "a gosto", false, 251, 10.4, 64, 3.3],
+    ["Brotos de hortaliças (ou salsinha picada)", null, "a gosto", false, 0, 0, 0, 0]
+  ],
+  passos: [
+    "Marinada: corte o músculo em cubos de cerca de 3 cm e transfira para uma tigela. Junte o tomilho, o louro e o vinho. Leve à geladeira por no mínimo 2 horas (pode marinar da noite anterior, mas por no máximo 12 horas).",
+    "Corte a cenoura em meias-luas grossas de 1,5 cm. Corte o salsão em fatias de 1,5 cm, na diagonal. Pique fino o alho. Descasque as cebolas pérola.",
+    "Passe a carne por uma peneira grande sobre uma tigela, pressionando com uma espátula para escorrer a marinada. Reserve o líquido com as ervas.",
+    "Volte a carne para a tigela, tempere com o sal e a pimenta, polvilhe a farinha e misture com as mãos para envolver todos os cubos (essa técnica, chamada singer, engrossa o molho durante o cozimento).",
+    "Em uma panela grande (mínimo de 4 litros) em fogo médio, regue com um pouco do azeite e doure a carne em etapas, sem amontoar. Transfira para uma travessa e regue a panela com mais azeite a cada leva.",
+    "Na mesma panela, em fogo médio, doure o bacon. Acrescente o alho e o extrato de tomate e mexa por 1 minuto.",
+    "Regue com o líquido da marinada reservado (com as ervas) e a água, raspando os queimadinhos do fundo da panela.",
+    "Junte a cenoura e o salsão, volte a carne para a panela, tempere com sal e pimenta e misture. Quando ferver, abaixe o fogo, tampe parcialmente e cozinhe por 1 hora e 15 minutos, mexendo de vez em quando.",
+    "Junte as cebolas pérola inteiras e cozinhe por mais 15 minutos, até a cebola, os legumes e a carne ficarem macios.",
+    "Limpe os cogumelos com um pano úmido (sem lavar em água corrente) e corte em quartos, ou ao meio se forem pequenos.",
+    "Quando a carne estiver macia e o molho encorpado, junte os cogumelos e cozinhe por 5 minutos. Desligue, ajuste o sal e a pimenta e sirva com brotos ou salsinha."
+  ]
+},{
+  id: "medalhoes-pimenta-verde",
+  titulo: "Filet au Poivre",
+  categoria: "Carnes",
+  porcoes: 4,
+  tempo: "~50 min",
+  ing: [
+    ["Medalhões de filé mignon", 1000, "8 medalhões", true, 143, 21.6, 0, 5.6],
+    ["Óleo", 24, "2 colheres de sopa", false, 884, 0, 0, 100],
+    ["Azeite de oliva", 24, "2 colheres de sopa", false, 884, 0, 0, 100],
+    ["Pimenta verde em grãos", 40, "4 colheres de sopa", true, 40, 1, 8, 0.5],
+    ["Vinho branco seco", 240, "1 xícara (chá)", false, 82, 0.1, 2.6, 0],
+    ["Conhaque", 56, "4 colheres de sopa", false, 231, 0, 0.1, 0],
+    ["Creme de leite fresco", 400, "400 ml", false, 340, 2.8, 2.7, 36.1],
+    ["Sal", null, "a gosto", false, 0, 0, 0, 0]
+  ],
+  passos: [
+    "Preaqueça o forno a 200 °C.",
+    "Em uma frigideira grande em fogo alto, aqueça metade do óleo e do azeite. Quando estiver bem quente, doure 4 medalhões por 2 minutos de cada lado, sem mexer, virando com uma pinça para não furar a carne.",
+    "Com a pinça, apoie os medalhões de lado, um ao lado do outro, e doure as laterais por cerca de 1 minuto, girando até dourar tudo. Transfira para uma assadeira, sem levar ao forno ainda.",
+    "Sem lavar a frigideira, aqueça o restante do óleo e do azeite e repita a operação com os outros 4 medalhões. Transfira para a assadeira e leve ao forno por 18 minutos (ao ponto).",
+    "Sem lavar a frigideira, acrescente o vinho branco em fogo baixo e raspe o fundo com uma colher de pau para soltar os resíduos da carne (deglaçar).",
+    "Pique grosso as pimentas verdes. Acrescente à frigideira o conhaque, as pimentas e o creme de leite e deixe reduzir por cerca de 10 minutos, até o molho encorpar.",
+    "Retire os medalhões do forno, junte o líquido da assadeira ao molho e misture. Acerte o sal e sirva os medalhões com o molho."
+  ]
+},{
+  id: "pudim-leite-condensado",
+  titulo: "Pudim de Leite Condensado",
+  categoria: "Sobremesas",
+  porcoes: 8,
+  tempo: "",
+  ing: [
+    ["Pudim"],
+    ["Leite condensado", 395, "1 caixinha", false, 313, 7.7, 57, 6.7],
+    ["Leite integral", 405, "1 caixinha (395 ml)", true, 61, 3.2, 4.6, 3.3],
+    ["Ovos", 150, "3 ovos", true, 143, 13, 1.6, 8.9],
+    ["Calda"],
+    ["Açúcar refinado", 180, "1 xícara", false, 387, 0, 99.6, 0],
+    ["Água", 120, "½ xícara", false, 0, 0, 0, 0]
+  ],
+  passos: []
+},{
+  id: "estrogonofe-frango",
+  titulo: "Estrogonofe de Frango",
+  categoria: "Frango",
+  porcoes: 6,
+  tempo: "~40 min",
+  ing: [
+    ["Peito de frango sem pele e sem osso, em cubos de 2,5 cm", 1000, "", false, 119, 21.5, 0, 3],
+    ["Cogumelo-de-paris", 285, "", false, 22, 3.1, 3.3, 0.3],
+    ["Cebola picada", 240, "~1 ½ cebola", true, 39, 1.7, 8.9, 0.1],
+    ["Alho picado", 10, "~3 dentes", true, 113, 7.0, 23.9, 0.2],
+    ["Extrato de tomate", 32, "", true, 61, 2.4, 15.0, 0.2],
+    ["Ketchup", 35, "", true, 101, 1.0, 27, 0.1],
+    ["Molho inglês", 35, "", true, 78, 0, 19.5, 0],
+    ["Conhaque", 30, "", true, 231, 0, 0.1, 0],
+    ["Creme de leite fresco", 500, "", false, 340, 2.8, 2.7, 36.1],
+    ["Azeite de oliva", 35, "a gosto", true, 884, 0, 0, 100],
+    ["Sal", null, "a gosto", false, 0, 0, 0, 0],
+    ["Pimenta-do-reino moída na hora", null, "a gosto", false, 251, 10.4, 64, 3.3]
+  ],
+  passos: [
+    "Mantenha o frango em temperatura ambiente enquanto prepara o restante (se estiver gelado na panela, cozinha em vez de dourar). Corte os cogumelos em 3 fatias (os menores, ao meio) e pique fino a cebola e o alho.",
+    "Em uma panela média em fogo médio, regue com um pouco de azeite e doure os cubos de frango em etapas, sem amontoar. Tempere com sal e vire com uma pinça para dourar por igual. Transfira para uma tigela e regue a panela com mais azeite a cada leva.",
+    "Abaixe o fogo, regue com mais azeite, adicione a cebola com uma pitada de sal e refogue por 3 minutos, até murchar, raspando o fundo da panela para soltar os queimadinhos. Junte o alho e mexa por 1 minuto.",
+    "Acrescente o extrato de tomate e o ketchup e mexa bem. Volte o frango para a panela, junte o conhaque e mexa para evaporar o álcool.",
+    "Junte o molho inglês e o creme de leite, tempere com sal e pimenta e cozinhe em fogo médio por cerca de 10 minutos, mexendo de vez em quando, até engrossar.",
+    "Acrescente os cogumelos e cozinhe por mais 2 minutos, até ficarem levemente macios."
+  ]
+},{
+  id: "molho-tomate",
+  titulo: "Molho de Tomate",
+  categoria: "Molhos",
+  porcoes: 4,
+  tempo: "~1 h 15 min",
+  ing: [
+    ["Cebola picada", 170, "1 cebola", true, 39, 1.7, 8.9, 0.1],
+    ["Azeite de oliva", 15, "", true, 884, 0, 0, 100],
+    ["Manteiga", 10, "", true, 758, 0.4, 0, 86],
+    ["Alho picado", 15, "~4 dentes", true, 113, 7.0, 23.9, 0.2],
+    ["Tomate fresco, picado em quadradinhos", 540, "4 a 5 tomates", true, 15, 1.1, 3.1, 0.2],
+    ["Extrato de tomate (só tomate)", 60, "4 colheres de sopa", true, 61, 2.4, 15.0, 0.2],
+    ["Passata de tomate", 680, "1 vidro", true, 35, 1.5, 6.5, 0.2, false, null, "1 vidro (~680 g)"],
+    ["Manjericão", null, "a gosto", false, 23, 3.2, 2.7, 0.6],
+    ["Parmesão em lascas", 30, "~3 lascas", true, 453, 35.6, 1.7, 33.5],
+    ["Sal", null, "a gosto", false, 0, 0, 0, 0],
+    ["Pimenta-do-reino", null, "a gosto", false, 251, 10.4, 64, 3.3]
+  ],
+  passos: [
+    "Refogue a cebola com o azeite e a manteiga, com um pouco de sal e pimenta. Quando murchar, junte o alho.",
+    "Quando o alho murchar, adicione os tomates picados em quadradinhos. Em fogo baixo, tampe a panela e cozinhe por 6 a 8 minutos.",
+    "Quando os tomates diminuírem, amasse-os na própria panela (com um amassador de batata ou o que tiver à mão) e cozinhe mais um pouco.",
+    "Adicione o extrato de tomate.",
+    "Junte a passata, o manjericão e o parmesão. Cozinhe em fogo baixo, com a tampa entreaberta, por pelo menos 40 minutos. Se estiver secando demais, tampe mais a panela.",
+    "Acerte o sal só no final, porque o molho reduz. Se precisar, vá salgando com cuidado ao longo do preparo."
+  ]
+}];
+
+var COR_CAT = { "Frango": "var(--cat-frango)", "Carnes": "var(--cat-carnes)", "Peixes": "var(--cat-peixes)", "Massas": "var(--cat-massas)", "Molhos": "var(--cat-molhos)", "Sobremesas": "var(--cat-sobremesas)", "Bolos": "var(--cat-bolos)", "Lanches": "var(--cat-lanches)", "Bebidas": "var(--cat-bebidas)" };
+function corCat(c) { return COR_CAT[c] || "var(--cat-massas)"; }
+
+var estado = { cat: "Todas", q: "", porcoes: {} };
+
+function fmtG(n) {
+  var r = n >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
+  return String(r).replace(".", ",");
+}
+function totais(r) {
+  var t = { kcal: 0, p: 0, c: 0, g: 0 };
+  r.ing.forEach(function (i) {
+    if (i.length < 2 || i[8]) return;
+    var q = i[9] != null ? i[9] : i[1];
+    t.kcal += q * i[4] / 100; t.p += q * i[5] / 100;
+    t.c += q * i[6] / 100; t.g += q * i[7] / 100;
+  });
+  return t;
+}
+function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+function macrosHtml(r) {
+  var n = estado.porcoes[r.id] || r.porcoes, t = totais(r);
+  var kcal = Math.round(t.kcal / n), p = t.p / n, c = t.c / n, g = t.g / n;
+  var ep = p * 4, ec = c * 4, eg = g * 9, soma = ep + ec + eg || 1;
+  var pc = function (x) { return Math.round(x / soma * 100); };
+  return '<div class="macros">' +
+    '<div class="macro"><b>' + kcal + '</b><span>kcal</span></div>' +
+    '<div class="macro"><b>' + Math.round(p) + ' g</b><span>proteína</span></div>' +
+    '<div class="macro"><b>' + Math.round(c) + ' g</b><span>carboidrato</span></div>' +
+    '<div class="macro"><b>' + Math.round(g) + ' g</b><span>gordura</span></div></div>' +
+    '<div class="barra" role="img" aria-label="Distribuição das calorias">' +
+    '<i style="width:' + ep / soma * 100 + '%;background:var(--prot)"></i>' +
+    '<i style="width:' + ec / soma * 100 + '%;background:var(--carb)"></i>' +
+    '<i style="width:' + eg / soma * 100 + '%;background:var(--fat)"></i></div>' +
+    '<div class="leg"><em style="--c:var(--prot)">proteína ' + pc(ep) + '%</em><em style="--c:var(--carb)">carboidrato ' + pc(ec) + '%</em><em style="--c:var(--fat)">gordura ' + pc(eg) + '%</em></div>';
+}
+
+function cartao(r) {
+  var n = estado.porcoes[r.id] || r.porcoes, t = totais(r);
+  var prot = r.ing.filter(function (i) { return i.length > 1 && /frango|carne|músculo/i.test(i[0]); })[0];
+  var rend = prot ? ' (cerca de ' + Math.round(prot[1] / r.porcoes) + ' g de ' + (/frango/i.test(prot[0]) ? 'frango' : 'carne') + ' cada)' : '';
+  var peso = r.ing.reduce(function (a, i) { return a + (i.length < 2 || i[1] === null || i[8] ? 0 : i[1]); }, 0);
+  var ings = r.ing.map(function (i, k) {
+    if (i.length < 2) return '<li class="grupo">' + esc(i[0]) + '</li>';
+    var id = r.id + "-i" + k;
+    return '<li><label for="' + id + '"><input type="checkbox" id="' + id + '">' +
+      '<span class="nome">' + esc(i[0]) + (i[2] ? '<span class="orig">' + esc(i[2]) + '</span>' : '') + '</span>' +
+      '<span class="g">' + (i[10] ? esc(i[10]) : i[1] === null ? 'a gosto' : (i[3] ? "~" : "") + fmtG(i[1]) + ' g') + '</span></label></li>';
+  }).join("");
+  var passos = r.passos.map(function (s) { return "<li><span>" + esc(s) + "</span></li>"; }).join("");
+  return '<details class="receita" data-id="' + r.id + '" style="--c:' + corCat(r.categoria) + '"' + (r.aberta ? " open" : "") + '>' +
+    '<summary><span class="cat">' + esc(r.categoria) + '</span><span class="titulo">' + esc(r.titulo) + '</span>' +
+    '<span class="resumo"><span>' + Math.round(t.kcal / n) + ' kcal/porção</span><span>' + n + ' porções</span>' + (r.tempo ? '<span>' + r.tempo + '</span>' : '') + '</span></summary>' +
+    '<div class="corpo">' +
+    '<section class="sec"><h3>Informação nutricional estimada, por porção</h3>' +
+    '<div class="porcoes">Rendimento: <button class="step-btn" data-d="-1" aria-label="Menos uma porção">−</button><output>' + n + '</output><button class="step-btn" data-d="1" aria-label="Mais uma porção">+</button> porções</div>' +
+    '<div class="nm">' + macrosHtml(r) + '</div>' +
+    '<p class="nota">Rendimento assumido em ' + r.porcoes + ' porções' + rend + ', já que a receita não informa. Ajuste acima e os valores se recalculam.</p>' + (r.nota ? '<p class="nota">' + esc(r.nota) + '</p>' : '') + '</section>' +
+    '<section class="sec"><h3>Ingredientes <span class="count">· ' + fmtG(peso) + ' g no total</span></h3><ul class="ing">' + ings + '</ul></section>' +
+    '<section class="sec"><h3>Modo de preparo</h3>' + (r.passos.length ? '<ol class="passos">' + passos + '</ol>' : '<p class="nota">Modo de preparo ainda não informado.</p>') + '</section>' +
+    '</div></details>';
+}
+
+function render() {
+  var q = estado.q.trim().toLowerCase();
+  var lista = RECEITAS.filter(function (r) {
+    if (estado.cat !== "Todas" && r.categoria !== estado.cat) return false;
+    if (!q) return true;
+    return r.titulo.toLowerCase().indexOf(q) > -1 ||
+      r.ing.some(function (i) { return i[0].toLowerCase().indexOf(q) > -1; });
+  });
+  var abertas = {};
+  document.querySelectorAll("details.receita[open]").forEach(function (d) { abertas[d.dataset.id] = true; });
+  RECEITAS.forEach(function (r) { r.aberta = !!abertas[r.id] || (RECEITAS.length === 1 && abertas[r.id] === undefined && !document.querySelector("details.receita")); });
+  document.getElementById("lista").innerHTML = lista.length ? lista.map(cartao).join("") : '<p class="vazio">Nenhuma receita encontrada.</p>';
+  document.getElementById("contagem").textContent = lista.length + (lista.length === 1 ? " receita" : " receitas");
+}
+
+function chips() {
+  var usadas = {};
+  RECEITAS.forEach(function (r) { usadas[r.categoria] = (usadas[r.categoria] || 0) + 1; });
+  var nomes = ["Todas"].concat(CATEGORIAS.filter(function (c) { return usadas[c]; }));
+  document.getElementById("chips").innerHTML = nomes.map(function (c) {
+    return '<button class="chip" data-cat="' + c + '" aria-pressed="' + (estado.cat === c) + '"' + (c === "Todas" ? "" : ' style="--c:' + corCat(c) + '"') + '>' + (c === "Todas" ? "" : '<span class="d"></span>') + c + '</button>';
+  }).join("");
+}
+
+document.getElementById("chips").addEventListener("click", function (e) {
+  var b = e.target.closest(".chip"); if (!b) return;
+  estado.cat = b.dataset.cat; chips(); render();
+});
+document.getElementById("busca").addEventListener("input", function (e) { estado.q = e.target.value; render(); });
+document.getElementById("lista").addEventListener("click", function (e) {
+  var b = e.target.closest(".step-btn"); if (!b) return;
+  e.preventDefault();
+  var d = b.closest("details"), r = RECEITAS.filter(function (x) { return x.id === d.dataset.id; })[0];
+  var n = Math.min(12, Math.max(1, (estado.porcoes[r.id] || r.porcoes) + Number(b.dataset.d)));
+  estado.porcoes[r.id] = n;
+  d.querySelector(".porcoes output").textContent = n;
+  d.querySelector(".nm").innerHTML = macrosHtml(r);
+  d.querySelector(".resumo").innerHTML = "<span>" + Math.round(totais(r).kcal / n) + " kcal/porção</span><span>" + n + " porções</span>" + (r.tempo ? "<span>" + r.tempo + "</span>" : "");
+});
+
+RECEITAS[0].aberta = true;
+chips();
+render();
+</script>
+
+</body></html>

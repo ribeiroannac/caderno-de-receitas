@@ -115,6 +115,18 @@ details.receita[open] > summary::after { content: "−"; }
 }
 .step-btn:hover { border-color: var(--fg); }
 .porcoes output { font-family: var(--font-display); font-weight: 800; color: var(--fg); min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; }
+.porcoes + .porcoes { margin-top: 10px; }
+.prot-in {
+  font: inherit; font-family: var(--font-display); font-weight: 800; font-variant-numeric: tabular-nums; text-align: center;
+  width: 84px; height: 34px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--bg); color: var(--fg); padding: 0 6px;
+}
+.prot-in:hover { border-color: var(--fg); }
+.reset {
+  font: inherit; font-size: 13px; font-weight: 700; height: 34px; padding: 0 12px; border-radius: 6px; cursor: pointer;
+  border: 1.5px solid var(--line); background: transparent; color: var(--fg);
+}
+.reset:hover { border-color: var(--fg); }
+.reset:disabled { opacity: .45; cursor: default; border-color: var(--line); }
 .macros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
 .macro { background: var(--bg); border-radius: 8px; border-top: 4px solid var(--line); padding: 10px 12px; min-width: 0; }
 .macro:nth-child(2) { border-top-color: var(--prot); }
@@ -453,6 +465,7 @@ var RECEITAS = [{
 },{
   id: "lasanha-potes-lentilha",
   titulo: "Lasanha em Potes com Lentilha",
+  passosFixos: [4],
   categoria: "Massas",
   porcoes: 8,
   tempo: "~1 h 15 min",
@@ -677,17 +690,42 @@ var RECEITAS = [{
 var COR_CAT = { "Frango": "var(--cat-frango)", "Carnes": "var(--cat-carnes)", "Peixes": "var(--cat-peixes)", "Massas": "var(--cat-massas)", "Molhos": "var(--cat-molhos)", "Sobremesas": "var(--cat-sobremesas)", "Bolos": "var(--cat-bolos)", "Lanches": "var(--cat-lanches)", "Bebidas": "var(--cat-bebidas)" };
 function corCat(c) { return COR_CAT[c] || "var(--cat-massas)"; }
 
-var estado = { cat: "Todas", q: "", porcoes: {} };
+var estado = { cat: "Todas", q: "", porcoes: {}, prot: {} };
 
 function fmtG(n) {
   var r = n >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
   return String(r).replace(".", ",");
 }
+
+// Proteína principal da receita: primeiro ingrediente com gramas cujo nome indica frango ou carne
+function protIng(r) {
+  return r.ing.filter(function (i) { return i.length > 1 && i[1] && /frango|carne|músculo|filé/i.test(i[0]); })[0];
+}
+function protNome(p) { return /frango/i.test(p[0]) ? "frango" : "carne"; }
+// Fator de escala: gramas escolhidos da proteína ÷ gramas da receita original
+function fator(r) {
+  var p = protIng(r), v = estado.prot[r.id];
+  return p && v ? v / p[1] : 1;
+}
+// Escala os "N g" de um texto (nome do ingrediente ou passo) pelo fator f
+function escalaG(s, f) {
+  return s.replace(/(~?)(\d+(?:[.,]\d+)?) g\b/g, function (m, til, n) {
+    return til + fmtG(parseFloat(n.replace(",", ".")) * f) + " g";
+  });
+}
+// Texto de um passo já ajustado; medidas caseiras entre parênteses (ex.: "(1 colher de chá)") saem quando a receita é escalada
+function passoTxt(r, k) {
+  var s = r.passos[k], f = fator(r);
+  if (f === 1 || (r.passosFixos || []).indexOf(k) > -1) return s;
+  s = s.replace(/\s*\((?:~?\d|[½¼¾⅓⅔])[^)]*(?:colher|xícara|dente)[^)]*\)/g, "");
+  return escalaG(s, f);
+}
+
 function totais(r) {
-  var t = { kcal: 0, p: 0, c: 0, g: 0 };
+  var t = { kcal: 0, p: 0, c: 0, g: 0 }, f = fator(r);
   r.ing.forEach(function (i) {
     if (i.length < 2 || i[8]) return;
-    var q = i[9] != null ? i[9] : i[1];
+    var q = (i[9] != null ? i[9] : i[1]) * f;
     t.kcal += q * i[4] / 100; t.p += q * i[5] / 100;
     t.c += q * i[6] / 100; t.g += q * i[7] / 100;
   });
@@ -712,28 +750,63 @@ function macrosHtml(r) {
     '<div class="leg"><em style="--c:var(--prot)">proteína ' + pc(ep) + '%</em><em style="--c:var(--carb)">carboidrato ' + pc(ec) + '%</em><em style="--c:var(--fat)">gordura ' + pc(eg) + '%</em></div>';
 }
 
+function pesoTotal(r) {
+  var f = fator(r);
+  return r.ing.reduce(function (a, i) { return a + (i.length < 2 || i[1] === null || i[8] ? 0 : i[1] * f); }, 0);
+}
+function ingsHtml(r) {
+  var f = fator(r);
+  return r.ing.map(function (i, k) {
+    if (i.length < 2) return '<li class="grupo">' + esc(i[0]) + '</li>';
+    var id = r.id + "-i" + k, nome = f === 1 ? i[0] : escalaG(i[0], f), orig = i[2], g;
+    if (i[1] === null) g = "a gosto";
+    else if (i[10] && f === 1) g = esc(i[10]);
+    else g = (i[3] ? "~" : "") + fmtG(i[1] * f) + " g";
+    if (i[9] != null) orig = "só ~" + fmtG(i[9] * f) + " g serão consumidos";
+    else if (f !== 1 && i[1] !== null && (i[10] || i[2])) orig = "receita original: " + (i[10] || i[2]);
+    return '<li><label for="' + id + '"><input type="checkbox" id="' + id + '">' +
+      '<span class="nome">' + esc(nome) + (orig ? '<span class="orig">' + esc(orig) + '</span>' : '') + '</span>' +
+      '<span class="g">' + g + '</span></label></li>';
+  }).join("");
+}
+function passosHtml(r) {
+  return r.passos.map(function (s, k) { return "<li><span>" + esc(passoTxt(r, k)) + "</span></li>"; }).join("");
+}
+function protPor(r) {
+  var p = protIng(r), n = estado.porcoes[r.id] || r.porcoes;
+  return "· cerca de " + Math.round(p[1] * fator(r) / n) + " g de " + protNome(p) + " por porção";
+}
+function ajusteTxt(r) {
+  var p = protIng(r);
+  return p ? "Quantidades ajustadas de " + fmtG(p[1]) + " g para " + fmtG(p[1] * fator(r)) + " g de " + protNome(p) + ". As medidas caseiras indicadas em cada item são as da receita original." : "";
+}
+function protHtml(r) {
+  var p = protIng(r); if (!p) return "";
+  var P = Math.round(p[1] * fator(r)), nome = protNome(p);
+  return '<div class="porcoes">Proteína (' + nome + '): ' +
+    '<button class="step-btn" data-p="-50" aria-label="Menos 50 g de ' + nome + '">−</button>' +
+    '<input class="prot-in" type="number" inputmode="numeric" min="50" max="5000" step="50" value="' + P + '" aria-label="Gramas de ' + nome + '">' +
+    '<button class="step-btn" data-p="50" aria-label="Mais 50 g de ' + nome + '">+</button> g ' +
+    '<button class="reset" data-reset="1"' + (fator(r) === 1 ? " disabled" : "") + '>Restaurar ' + fmtG(p[1]) + ' g</button>' +
+    '<span class="prot-por">' + protPor(r) + '</span></div>';
+}
+
 function cartao(r) {
   var n = estado.porcoes[r.id] || r.porcoes, t = totais(r);
-  var prot = r.ing.filter(function (i) { return i.length > 1 && /frango|carne|músculo/i.test(i[0]); })[0];
-  var rend = prot ? ' (cerca de ' + Math.round(prot[1] / r.porcoes) + ' g de ' + (/frango/i.test(prot[0]) ? 'frango' : 'carne') + ' cada)' : '';
-  var peso = r.ing.reduce(function (a, i) { return a + (i.length < 2 || i[1] === null || i[8] ? 0 : i[1]); }, 0);
-  var ings = r.ing.map(function (i, k) {
-    if (i.length < 2) return '<li class="grupo">' + esc(i[0]) + '</li>';
-    var id = r.id + "-i" + k;
-    return '<li><label for="' + id + '"><input type="checkbox" id="' + id + '">' +
-      '<span class="nome">' + esc(i[0]) + (i[2] ? '<span class="orig">' + esc(i[2]) + '</span>' : '') + '</span>' +
-      '<span class="g">' + (i[10] ? esc(i[10]) : i[1] === null ? 'a gosto' : (i[3] ? "~" : "") + fmtG(i[1]) + ' g') + '</span></label></li>';
-  }).join("");
-  var passos = r.passos.map(function (s) { return "<li><span>" + esc(s) + "</span></li>"; }).join("");
+  var prot = protIng(r);
+  var rend = prot ? ' (cerca de ' + Math.round(prot[1] / r.porcoes) + ' g de ' + protNome(prot) + ' cada)' : '';
+  var ings = ingsHtml(r), passos = passosHtml(r);
   return '<details class="receita" data-id="' + r.id + '" style="--c:' + corCat(r.categoria) + '"' + (r.aberta ? " open" : "") + '>' +
     '<summary><span class="cat">' + esc(r.categoria) + '</span><span class="titulo">' + esc(r.titulo) + '</span>' +
     '<span class="resumo"><span>' + Math.round(t.kcal / n) + ' kcal/porção</span><span>' + n + ' porções</span>' + (r.tempo ? '<span>' + r.tempo + '</span>' : '') + '</span></summary>' +
     '<div class="corpo">' +
     '<section class="sec"><h3>Informação nutricional estimada, por porção</h3>' +
     '<div class="porcoes">Rendimento: <button class="step-btn" data-d="-1" aria-label="Menos uma porção">−</button><output>' + n + '</output><button class="step-btn" data-d="1" aria-label="Mais uma porção">+</button> porções</div>' +
+    protHtml(r) +
     '<div class="nm">' + macrosHtml(r) + '</div>' +
-    '<p class="nota">Rendimento assumido em ' + r.porcoes + ' porções' + rend + ', já que a receita não informa. Ajuste acima e os valores se recalculam.</p>' + (r.nota ? '<p class="nota">' + esc(r.nota) + '</p>' : '') + '</section>' +
-    '<section class="sec"><h3>Ingredientes <span class="count">· ' + fmtG(peso) + ' g no total</span></h3><ul class="ing">' + ings + '</ul></section>' +
+    '<p class="nota">Rendimento assumido em ' + r.porcoes + ' porções' + rend + ', já que a receita não informa. Ajuste as porções ou a proteína acima e ingredientes, modo de preparo e macros se recalculam.</p>' + (r.nota ? '<p class="nota">' + esc(r.nota) + '</p>' : '') + '</section>' +
+    '<section class="sec"><h3>Ingredientes <span class="count peso">· ' + fmtG(pesoTotal(r)) + ' g no total</span></h3><ul class="ing">' + ings + '</ul>' +
+    '<p class="nota aj"' + (fator(r) === 1 ? " hidden" : "") + '>' + esc(ajusteTxt(r)) + '</p></section>' +
     '<section class="sec"><h3>Modo de preparo</h3>' + (r.passos.length ? '<ol class="passos">' + passos + '</ol>' : '<p class="nota">Modo de preparo ainda não informado.</p>') + '</section>' +
     '</div></details>';
 }
@@ -767,15 +840,67 @@ document.getElementById("chips").addEventListener("click", function (e) {
   estado.cat = b.dataset.cat; chips(); render();
 });
 document.getElementById("busca").addEventListener("input", function (e) { estado.q = e.target.value; render(); });
-document.getElementById("lista").addEventListener("click", function (e) {
-  var b = e.target.closest(".step-btn"); if (!b) return;
-  e.preventDefault();
-  var d = b.closest("details"), r = RECEITAS.filter(function (x) { return x.id === d.dataset.id; })[0];
-  var n = Math.min(12, Math.max(1, (estado.porcoes[r.id] || r.porcoes) + Number(b.dataset.d)));
-  estado.porcoes[r.id] = n;
+function achar(d) { return RECEITAS.filter(function (x) { return x.id === d.dataset.id; })[0]; }
+
+// Atualiza só o que muda dentro do cartão aberto, preservando os ingredientes já marcados
+function atualizar(d, r) {
+  var n = estado.porcoes[r.id] || r.porcoes, p = protIng(r), f = fator(r);
   d.querySelector(".porcoes output").textContent = n;
   d.querySelector(".nm").innerHTML = macrosHtml(r);
   d.querySelector(".resumo").innerHTML = "<span>" + Math.round(totais(r).kcal / n) + " kcal/porção</span><span>" + n + " porções</span>" + (r.tempo ? "<span>" + r.tempo + "</span>" : "");
+  d.querySelector(".peso").textContent = "· " + fmtG(pesoTotal(r)) + " g no total";
+  var marcados = {};
+  d.querySelectorAll(".ing input").forEach(function (c) { marcados[c.id] = c.checked; });
+  var ul = d.querySelector(".ing");
+  ul.innerHTML = ingsHtml(r);
+  ul.querySelectorAll("input").forEach(function (c) { c.checked = !!marcados[c.id]; });
+  var ol = d.querySelector(".passos");
+  if (ol) ol.innerHTML = passosHtml(r);
+  var aj = d.querySelector(".aj");
+  aj.textContent = ajusteTxt(r);
+  aj.hidden = f === 1;
+  if (p) {
+    var inp = d.querySelector(".prot-in");
+    if (document.activeElement !== inp) inp.value = Math.round(p[1] * f);
+    d.querySelector(".prot-por").textContent = protPor(r);
+    d.querySelector(".reset").disabled = f === 1;
+  }
+}
+function definirProt(r, g) {
+  var p = protIng(r);
+  g = Math.min(5000, Math.max(50, Math.round(g)));
+  if (g === Math.round(p[1])) delete estado.prot[r.id]; else estado.prot[r.id] = g;
+}
+
+document.getElementById("lista").addEventListener("click", function (e) {
+  var b = e.target.closest(".step-btn, .reset"); if (!b) return;
+  e.preventDefault();
+  var d = b.closest("details"), r = achar(d);
+  if (b.dataset.d) {
+    estado.porcoes[r.id] = Math.min(12, Math.max(1, (estado.porcoes[r.id] || r.porcoes) + Number(b.dataset.d)));
+  } else if (b.dataset.p) {
+    var p = protIng(r), atual = Math.round(p[1] * fator(r));
+    definirProt(r, atual + Number(b.dataset.p));
+  } else {
+    delete estado.prot[r.id];
+  }
+  atualizar(d, r);
+});
+// Campo numérico: aplica ao digitar (se for um valor válido) e ao sair do campo
+document.getElementById("lista").addEventListener("input", function (e) {
+  if (!e.target.classList.contains("prot-in")) return;
+  var v = parseFloat(e.target.value);
+  if (!(v >= 50)) return;
+  var d = e.target.closest("details"), r = achar(d);
+  definirProt(r, v);
+  atualizar(d, r);
+});
+document.getElementById("lista").addEventListener("change", function (e) {
+  if (!e.target.classList.contains("prot-in")) return;
+  var d = e.target.closest("details"), r = achar(d), p = protIng(r), v = parseFloat(e.target.value);
+  if (v >= 50) definirProt(r, v);
+  e.target.value = Math.round(p[1] * fator(r));
+  atualizar(d, r);
 });
 
 RECEITAS[0].aberta = true;
